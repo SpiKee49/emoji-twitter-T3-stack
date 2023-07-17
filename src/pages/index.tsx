@@ -1,11 +1,9 @@
-import { type RouterOutputs, api } from "~/utils/api";
 import { SignInButton, useUser } from "@clerk/nextjs";
 
+import Feed from "../components/Feed";
 import Head from "next/head";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
 import Image from "next/image";
-dayjs.extend(relativeTime);
+import { api } from "~/utils/api";
 
 const CreatePostWizard = () => {
   const { user } = useUser();
@@ -28,39 +26,13 @@ const CreatePostWizard = () => {
   );
 };
 
-type PostWithUser = RouterOutputs["posts"]["getAll"][number];
-
-const PostView = (props: PostWithUser) => {
-  const { post, author } = props;
-  return (
-    <div key={post.id} className="flex gap-5 border-b border-slate-700 p-4">
-      <Image
-        src={author?.profilePic}
-        alt="Profile image"
-        className="h-10 w-10 rounded-full"
-        width={40}
-        height={40}
-      />
-      <div className="flex flex-col">
-        <div className="flex text-xs font-bold text-slate-600">
-          <span>{`@${author?.username} · ${dayjs(
-            post.createdAt
-          ).fromNow()}`}</span>
-        </div>
-        <div className="flex">
-          <span>{post.content}</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default function Home() {
-  const { data, isLoading } = api.posts.getAll.useQuery();
-  const user = useUser();
+  const { isLoaded: userLoaded, isSignedIn } = useUser();
 
-  if (isLoading) return <div>Loading...</div>;
-  if (!data) return <div>Something went wrong. No data found.</div>;
+  if (!userLoaded) return <div />;
+
+  // React Query is using cache, so even tho we don't store data here but in component Feed, they will be prepared in cache
+  api.posts.getAll.useQuery();
 
   return (
     <>
@@ -72,7 +44,7 @@ export default function Home() {
       <main className="flex h-screen justify-center">
         <div className="h-full w-full border-x border-slate-300 md:max-w-2xl">
           <div className="flex border-b border-slate-500 p-4 ">
-            {!user.isSignedIn && (
+            {!isSignedIn && (
               <div className="flex justify-center">
                 <SignInButton>
                   <button className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 text-white hover:bg-white/20">
@@ -81,14 +53,9 @@ export default function Home() {
                 </SignInButton>
               </div>
             )}
-            {user.isSignedIn && <CreatePostWizard />}
+            {isSignedIn && <CreatePostWizard />}
           </div>
-
-          <div>
-            {data.map((fullPost) => (
-              <PostView {...fullPost} key={fullPost.post.id} />
-            ))}
-          </div>
+          <Feed />
         </div>
       </main>
     </>
