@@ -4,10 +4,21 @@ import Feed from "../components/Feed";
 import Head from "next/head";
 import Image from "next/image";
 import { api } from "~/utils/api";
+import { useState } from "react";
 
 const CreatePostWizard = () => {
   const { user } = useUser();
-  console.log(user);
+  const [input, setInput] = useState<string>("");
+
+  const ctx = api.useContext();
+
+  const { mutate, isLoading: posting } = api.posts.create.useMutation({
+    onSuccess: () => {
+      setInput("");
+      void ctx.posts.getAll.invalidate();
+    },
+  });
+
   if (!user) return null;
   return (
     <div className="flex w-full gap-5">
@@ -21,7 +32,12 @@ const CreatePostWizard = () => {
       <input
         placeholder="Type some emojis!"
         className="w-full bg-transparent"
+        type="text"
+        value={input}
+        disabled={posting}
+        onChange={(e) => setInput(e.target.value)}
       />
+      <button onClick={() => mutate({ content: input })}>Post</button>
     </div>
   );
 };
